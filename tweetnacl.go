@@ -146,3 +146,53 @@ func crypto_core_hsalsa20(out []u8, in []u8, k []u8, c []u8) {
   core(out,in,k,c,true);
 }
 
+var sigma [16]u8 = [16]u8{ 'e', 'x', 'p', 'a', 'n', 'd', ' ', '3', '2', '-', 'b', 'y', 't', 'e', ' ', 'k' }
+
+func crypto_stream_salsa20_xor(c []u8, m []u8, b u64, n []u8, k []u8) int {
+  var z [16]u8
+  var x [64]u8
+  var u u32
+  var i int
+  if b == 0 {
+  	return 0
+  }
+  for i = 0; i < 16; i++ {
+  	z[i] = 0
+  }
+  for i = 0; i < 8; i++ {
+  	z[i] = n[i]
+  }
+  for ; b >= 64; {
+    crypto_core_salsa20(x[:],z[:],k,sigma[:])
+    for i = 0; i < 64; i++ {
+    	if m != nil {
+    		c[i] = m[i]^x[i]
+    	} else {
+    		c[i] = x[i]
+    	}
+    }
+    u = 1;
+    for i = 8; i < 16; i++ {
+      u += u32(z[i])
+      z[i] = u8(u)
+      u >>= 8
+    }
+    b -= 64;
+    c = c[64:]
+    if m != nil {
+		m = m[64:]
+	}
+  }
+  if b > 0 {
+    crypto_core_salsa20(x[:],z[:],k,sigma[:])
+    for i = 0; i < int(b); i++ {
+    	if m != nil {
+			c[i] = m[i] ^ x[i]
+    	} else {
+    		c[i] = x[i]
+    	}
+    }
+  }
+  return 0
+}
+
