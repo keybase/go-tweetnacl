@@ -177,7 +177,7 @@ func crypto_stream_salsa20_xor(c []u8, m []u8, b u64, n []u8, k []u8) int {
       z[i] = u8(u)
       u >>= 8
     }
-    b -= 64;
+    b -= 64
     c = c[64:]
     if m != nil {
 		m = m[64:]
