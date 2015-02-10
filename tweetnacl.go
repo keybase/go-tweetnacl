@@ -26,7 +26,7 @@ var I gf = gf{0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0x
 func L32(x u32, c uint) u32 { return (x << c) | ((x & 0xffffffff) >> (32 - c)) }
 
 // ld32 is load 32-bit integer little-endian
-func ld32(x [4]u8) u32 {
+func ld32(x []u8) u32 {
 	u := u32(x[3])
 	u = (u << 8) | u32(x[2])
 	u = (u << 8) | u32(x[1])
@@ -34,7 +34,7 @@ func ld32(x [4]u8) u32 {
 }
 
 // dl64 is load 64-bit integer big-endian
-func dl64(x [8]u8) u64 {
+func dl64(x []u8) u64 {
 	var u u64
 	for i := 0; i < 8; i++ {
 		u = (u << 8) | u64(x[i])
@@ -43,7 +43,7 @@ func dl64(x [8]u8) u64 {
 }
 
 // st32 is store 32-bit integer little-endian
-func st32(x [4]u8, u u32) {
+func st32(x []u8, u u32) {
 	for i := 0; i < 4; i++ {
 		x[i] = u8(u)
 		u >>= 8
@@ -51,7 +51,7 @@ func st32(x [4]u8, u u32) {
 }
 
 // ts64 is store 64-bit integer big-endian
-func ts64(x [8]u8, u u64) {
+func ts64(x []u8, u u64) {
 	for i := 7; i >= 0; i-- {
 		x[i] = u8(u)
 		u >>= 8
@@ -81,3 +81,68 @@ func crypto_verify_16(x [16]u8, y [16]u8) u32 {
 func crypto_verify_32(x [32]u8, y [32]u8) u32 {
 	return vn(x[:], y[:], 32)
 }
+
+// core is merged crypto_core_salsa20, crypto_core_hsalsa20
+func core(out []u8, in []u8, k []u8, c []u8, h bool) {
+	var w [16]u32
+	var x [16]u32
+	var y [16]u32
+	var t [4]u32
+
+	var i, j, m int
+
+	for i = 0; i < 4; i++ {
+		x[5*i] = ld32(c[4*i:])
+		x[1+i] = ld32(k[4*i:])
+		x[6+i] = ld32(in[4*i:])
+		x[11+i] = ld32(k[16+4*i:])
+	}
+	for i = 0; i < 16; i++ {
+		y[i] = x[i]
+	}
+
+	for i = 0; i < 20; i++ {
+		for j = 0; j < 4; j++ {
+			for m = 0; m < 4; m++ {
+				t[m] = x[(5*j+4*m)%16]
+			}
+			t[1] ^= L32(t[0]+t[3], 7)
+			t[2] ^= L32(t[1]+t[0], 9)
+			t[3] ^= L32(t[2]+t[1], 13)
+			t[0] ^= L32(t[3]+t[2], 18)
+			for m = 0; m < 4; m++ {
+				w[4*j+(j+m)%4] = t[m]
+			}
+		}
+		for m = 0; m < 16; m++ {
+			x[m] = w[m]
+		}
+	}
+
+	if h {
+		for i = 0; i < 16; i++ {
+			x[i] += y[i]
+		}
+		for i = 0; i < 4; i++ {
+			x[5*i] -= ld32(c[4*i:])
+			x[6+i] -= ld32(in[4*i:])
+		}
+		for i = 0; i < 4; i++ {
+			st32(out[4*i:], x[5*i])
+			st32(out[16+4*i:], x[6+i])
+		}
+	} else {
+		for i = 0; i < 16; i++ {
+			st32(out[4*i:], x[i]+y[i])
+		}
+	}
+}
+
+func crypto_core_salsa20(out []u8, in []u8, k []u8, c []u8) {
+  core(out,in,k,c,false)
+}
+
+func crypto_core_hsalsa20(out []u8, in []u8, k []u8, c []u8) {
+  core(out,in,k,c,true);
+}
+
