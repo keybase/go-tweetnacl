@@ -1,16 +1,11 @@
 
-build: tweetnacl.o
-default: tweetnacl.o
+build: all.c
+default: all.c
 
-all.c: tweetnacl.c extras.c
+all.c: ../c/tweetnacl.c ../c-wrap/extras.c
 	cat $^ > $@
 
-CFLAGS = -g -O2 -Wall
-
-tweetnacl.o: all.c tweetnacl.h
-	gcc $(CFLAGS) -o $@ -c $< 
-
 clean:
-	rm -rf *.o all.c
+	rm all.c
 
 .PHONY: clean
