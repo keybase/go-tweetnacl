@@ -1,1 +1,1 @@
-../c/tweetnacl.h
+../cr.yp.to/tweetnacl.h
