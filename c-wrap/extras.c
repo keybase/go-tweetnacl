@@ -1,5 +1,6 @@
 
 #include "_cgo_export.h"
+#include "../c/tweetnacl.h"
 
 int crypto_sign_keypair_seed(u8 *pk, u8 *sk, const u8 *seed) {
   u8 d[64];

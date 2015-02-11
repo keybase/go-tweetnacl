@@ -1,7 +1,7 @@
 
 package tweetnacl
 
-// #include "tweetnacl.h"
+// #include "../c/tweetnacl.h"
 import "C"
 
 import (
