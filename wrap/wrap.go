@@ -20,6 +20,18 @@ func CryptoSignKeypairSeed(pub SignPublicKey, sec SignSecretKey, seed SignSeed) 
 		(*C.uchar)(unsafe.Pointer(&seed[0])))	
 }
 
+func CryptoSign(msg []byte, sec SignSecretKey) []byte {
+	var i C.ulonglong
+	ret := make([]byte, len(msg) + 64)
+	C.crypto_sign(
+		(*C.uchar)(unsafe.Pointer(&ret[0])),
+		(*C.ulonglong)(unsafe.Pointer(&i)),
+		(*C.uchar)(unsafe.Pointer(&msg[0])),
+		C.ulonglong(len(msg)),
+		(*C.uchar)(unsafe.Pointer(&sec[0])))
+	return ret
+}
+
 //export RandomBytes
 func RandomBytes(cbuf *C.uchar, n C.int) {
 	buf := C.GoBytes(unsafe.Pointer(cbuf), n)
