@@ -830,3 +830,43 @@ int crypto_sign_keypair_seed(u8 *pk, u8 *sk, const u8 *seed) {
 void randombytes(u8 *buf, u64 n) {
   RandomBytes(buf, n);
 }
+
+int p2es_scalarmult(gf result[4], const u8 *receiver_public, const u8 *sender_private) {
+  gf receiver_unpacked[4];
+  u8 d[32];
+
+  crypto_hash(d, sender_private, 32);
+  d[0] &= 248;
+  d[31] &= 127;
+  d[31] |= 64;
+
+  if (unpackneg(receiver_unpacked, receiver_public) < 0) return -1;
+  scalarmult(result, receiver_unpacked, d);
+  return 0;
+}
+
+int crypto_p2es_server(u8 *r, const u8 *receiver_public, const u8 *sender_private) {
+  gf tmp[4];
+  if (p2es_scalarmult(tmp, receiver_public, sender_private) < 0) return -1;
+  pack(r, tmp);
+  return 0;
+}
+
+int crypto_p2es_client(u8 *r, const u8 *server, const u8 *receiver_public, const u8 *sender_private) {
+  gf a[4];
+  gf b[4];
+  u8 sk[32];
+  if (unpackneg(a, server) < 0) return -1;
+  if (p2es_scalarmult(b, receiver_public, sender_private) < 0) return -1;
+  add(a,b);
+  pack(sk, a);
+  return crypto_core_hsalsa20(r, _0, sk, sigma);
+}
+
+void crypto_p2es_client_refresh(u8 *r, const u8 *key, const u8 *delta) {
+  A(r, key, delta)
+}
+
+void crypto_p2es_server_refresh(u8 *r, const u8 *key, const u8 *delta) {
+  Z(r, key, delta)
+}
